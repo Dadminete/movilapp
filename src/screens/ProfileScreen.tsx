@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View, Platform, Image } from "react-native";
+import { Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View, Platform, Image, ScrollView } from "react-native";
 import { LogOut, User, Mail, Shield, ChevronRight, Sun, Moon } from "lucide-react-native";
 
 import { useAuth } from "@/context/AuthContext";
@@ -15,9 +15,13 @@ export function ProfileScreen() {
     <View style={[styles.baseContainer, { backgroundColor: colors.bg }]}>
       <StatusBar barStyle={theme === "dark" ? "light-content" : "dark-content"} />
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.container}>
+        <ScrollView 
+          style={{ flex: 1 }} 
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={[styles.title, { color: colors.text }]}>Mi Perfil</Text>
-
+          
           <View style={[styles.profileCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={[styles.avatarWrapper, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
               {user?.avatar ? (
@@ -72,22 +76,22 @@ export function ProfileScreen() {
             </View>
           </View>
 
-          <View style={styles.spacer} />
-
-          <Pressable 
-            style={({ pressed }) => [
-              styles.logoutButton,
-              { backgroundColor: colors.danger },
-              pressed && styles.logoutButtonPressed
-            ]} 
-            onPress={signOut}
-          >
-            <LogOut size={20} color="#FFF" style={styles.logoutIcon} />
-            <Text style={styles.logoutText}>Cerrar Sesión</Text>
-          </Pressable>
-          
-          <Text style={[styles.version, { color: colors.textDim }]}>v3.0.1 Quantum Edition</Text>
-        </View>
+          <View style={styles.footer}>
+            <Pressable 
+              style={({ pressed }) => [
+                styles.logoutButton,
+                { backgroundColor: colors.danger },
+                pressed && styles.logoutButtonPressed
+              ]} 
+              onPress={signOut}
+            >
+              <LogOut size={20} color="#FFF" style={styles.logoutIcon} />
+              <Text style={styles.logoutText}>Cerrar Sesión</Text>
+            </Pressable>
+            
+            <Text style={[styles.version, { color: colors.textDim }]}>v3.0.1 Quantum Edition</Text>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
@@ -111,7 +115,7 @@ function MenuItem({ icon, label, value, colors }: { icon: any; label: string; va
 const styles = StyleSheet.create({
   baseContainer: { flex: 1 },
   safeArea: { flex: 1 },
-  container: { flex: 1, padding: appSpacing.lg, gap: appSpacing.xl },
+  scrollContainer: { padding: appSpacing.lg, gap: appSpacing.xl, paddingBottom: 40 },
   title: { 
     fontSize: 28, 
     fontWeight: "900",
@@ -194,8 +198,9 @@ const styles = StyleSheet.create({
     height: 1,
     marginHorizontal: appSpacing.md,
   },
-  spacer: {
-    flex: 1,
+  footer: {
+    marginTop: appSpacing.lg,
+    gap: appSpacing.md,
   },
   logoutButton: {
     borderRadius: appRadius.lg,
@@ -214,7 +219,7 @@ const styles = StyleSheet.create({
   },
   logoutText: { 
     color: "#FFF", 
-    fontWeight: "800",
+    fontWeight: "800", 
     fontSize: 16,
   },
   version: {
