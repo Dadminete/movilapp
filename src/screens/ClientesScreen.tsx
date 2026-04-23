@@ -19,6 +19,7 @@ import { ClienteListItem } from "@/types/api";
 import { useTheme } from "@/context/ThemeContext";
 import { darkTheme, lightTheme, appRadius, appShadows, appSpacing } from "@/theme";
 import { ClienteDetailScreen } from "@/screens/ClienteDetailScreen";
+import { formatCurrency } from "@/utils/format";
 
 export function ClientesScreen() {
   const { theme } = useTheme();
@@ -159,7 +160,7 @@ export function ClientesScreen() {
                 
                 <View style={styles.itemRight}>
                   <Text style={[styles.itemAmount, { color: colors.text }]}>
-                    ${Number(item.montoMensual || "0").toLocaleString("es-DO", { minimumFractionDigits: 0 })}
+                    {formatCurrency(item.montoMensual)}
                   </Text>
                   <View style={[styles.activeBadge, { backgroundColor: theme === "dark" ? "rgba(16, 185, 129, 0.1)" : "rgba(5, 150, 105, 0.1)" }]}>
                     <Text style={[styles.activeText, { color: colors.success }]}>{item.estado}</Text>

@@ -16,6 +16,7 @@ import { darkTheme, lightTheme, appRadius, appShadows, appSpacing } from "@/them
 import { getApiErrorMessage } from "@/services/http";
 import { getSuscripciones } from "@/services/suscripciones";
 import { SuscripcionItem } from "@/types/api";
+import { formatCurrency } from "@/utils/format";
 
 export function SuscripcionesScreen() {
   const { theme } = useTheme();
@@ -117,7 +118,7 @@ export function SuscripcionesScreen() {
                       <Text style={[styles.itemSub, { color: colors.textDim }]}>{contrato}</Text>
                     </View>
                   </View>
-                  <Text style={[styles.itemAmount, { color: colors.text }]}>${Number(precio).toLocaleString()}</Text>
+                  <Text style={[styles.itemAmount, { color: colors.text }]}>{formatCurrency(precio)}</Text>
                 </View>
                 
                 <View style={[styles.divider, { backgroundColor: colors.border }]} />

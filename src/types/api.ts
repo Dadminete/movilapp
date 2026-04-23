@@ -74,4 +74,5 @@ export interface FacturaListItem {
   fechaVencimiento: string;
   estado: string;
   total: number | string;
+  pendiente?: number | string;
 }

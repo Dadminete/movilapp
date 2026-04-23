@@ -51,3 +51,15 @@ export async function getDashboardData(): Promise<DashboardStats> {
     }
   };
 }
+export interface LookupData {
+  cajas: { id: string; nombre: string }[];
+  cuentasBancarias: { id: string; numeroCuenta: string; bankNombre: string; nombreOficialCuenta: string }[];
+}
+
+export async function getLookupData(): Promise<LookupData> {
+  const response = await http.get<ApiResponse<LookupData>>("/api/contabilidad/lookup");
+  if (!response.data.success) {
+    throw new Error(response.data.error || "No se pudo cargar la información de cuentas");
+  }
+  return response.data.data;
+}

@@ -20,8 +20,9 @@ import { getApiErrorMessage } from "@/services/http";
 import { ClienteDetail } from "@/types/api";
 import { useTheme } from "@/context/ThemeContext";
 import { darkTheme, lightTheme, appRadius, appShadows, appSpacing } from "@/theme";
+import { formatCurrency } from "@/utils/format";
 
-type Tab = "info" | "suscripciones" | "historial";
+type Tab = "info" | "suscripciones" | "facturas" | "historial";
 
 interface Props {
   clienteId: string;
@@ -57,6 +58,7 @@ export function ClienteDetailScreen({ clienteId, onBack }: Props) {
   const [cliente, setCliente] = useState<ClienteDetail | null>(null);
   const [historial, setHistorial] = useState<HistorialEntry[]>([]);
   const [suscripciones, setSuscripciones] = useState<SuscripcionEntry[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -67,6 +69,7 @@ export function ClienteDetailScreen({ clienteId, onBack }: Props) {
         setCliente(data.client);
         setHistorial((data.history as HistorialEntry[]) || []);
         setSuscripciones((data.subscriptions as SuscripcionEntry[]) || []);
+        setInvoices(data.invoices || []);
       } catch (err: unknown) {
         setError(getApiErrorMessage(err));
       } finally {
@@ -148,6 +151,13 @@ export function ClienteDetailScreen({ clienteId, onBack }: Props) {
                   colors={colors}
                 />
                 <TabBtn 
+                  icon={<History size={16} color={tab === "facturas" ? "#FFF" : colors.textDim} />}
+                  label="Facturas" 
+                  active={tab === "facturas"} 
+                  onPress={() => setTab("facturas")} 
+                  colors={colors}
+                />
+                <TabBtn 
                   icon={<History size={16} color={tab === "historial" ? "#FFF" : colors.textDim} />}
                   label="Cambios" 
                   active={tab === "historial"} 
@@ -160,6 +170,7 @@ export function ClienteDetailScreen({ clienteId, onBack }: Props) {
             <View style={styles.tabContent}>
               {tab === "info" && cliente && <InfoTab cliente={cliente} colors={colors} />}
               {tab === "suscripciones" && <SuscripcionesTab rows={suscripciones} colors={colors} />}
+              {tab === "facturas" && <FacturasTab rows={invoices} colors={colors} />}
               {tab === "historial" && <HistorialTab rows={historial} colors={colors} />}
             </View>
           </>
@@ -200,7 +211,7 @@ function InfoTab({ cliente, colors }: { cliente: ClienteDetail; colors: any }) {
         >
           <Text style={[styles.amountLabel, { color: colors.primary }]}>Monto Mensual</Text>
           <Text style={[styles.amountValue, { color: colors.text }]}>
-            RD$ {Number(cliente.montoMensual || "0").toLocaleString("es-DO", { minimumFractionDigits: 0 })}
+            {formatCurrency(cliente.montoMensual)}
           </Text>
         </LinearGradient>
       </View>
@@ -251,13 +262,75 @@ function SuscripcionesTab({ rows, colors }: { rows: SuscripcionEntry[]; colors: 
                 <Hash size={12} color={colors.textDim} />
                 <Text style={[styles.cardSub, { color: colors.textDim }]}>Contrato: {item.numero_contrato || "-"}</Text>
               </View>
-              <Text style={[styles.cardPrice, { color: colors.text }]}>RD$ {Number(precio).toLocaleString()}</Text>
+              <Text style={[styles.cardPrice, { color: colors.text }]}>{formatCurrency(precio)}</Text>
             </View>
           </View>
         );
       }}
     />
   );
+}
+
+function FacturasTab({ rows, colors }: { rows: any[]; colors: any }) {
+  if (rows.length === 0) {
+    return (
+      <View style={styles.centered}>
+        <CreditCard size={48} color={colors.surfaceAlt} />
+        <Text style={[styles.muted, { color: colors.textDim }]}>No hay facturas registradas.</Text>
+      </View>
+    );
+  }
+
+  return (
+    <FlatList
+      data={rows}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={styles.listPadding}
+      renderItem={({ item }) => {
+        const s = item.estado.toLowerCase();
+        const isPaid = s === "pagada" || s === "pagado";
+        const isVoid = s === "anulada" || s === "cancelada" || s === "anulado";
+        
+        return (
+          <View style={[styles.modernCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.cardHeader}>
+              <View>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>{item.numeroFactura}</Text>
+                <Text style={[styles.cardSub, { color: colors.textDim }]}>{new Date(item.fechaFactura).toLocaleDateString("es-DO")}</Text>
+              </View>
+              <View style={[styles.badge, { backgroundColor: getStatusColor(s, colors) + "15" }]}>
+                <Text style={[styles.badgeText, { color: getStatusColor(s, colors) }]}>{item.estado}</Text>
+              </View>
+            </View>
+            <View style={styles.cardBody}>
+              <View>
+                <Text style={[styles.detailLabel, { color: colors.textDim }]}>Pendiente</Text>
+                <Text style={[styles.cardPrice, { color: isPaid ? colors.success : colors.warning }]}>
+                  {formatCurrency(item.montoPendiente || 0)}
+                </Text>
+              </View>
+              <View style={{ alignItems: "flex-end" }}>
+                <Text style={[styles.detailLabel, { color: colors.textDim }]}>Total Factura</Text>
+                <Text style={[styles.cardPrice, { color: colors.text, fontSize: 14 }]}>
+                  {formatCurrency(item.total)}
+                </Text>
+              </View>
+            </View>
+          </View>
+        );
+      }}
+    />
+  );
+}
+
+function getStatusColor(status: string, colors: any) {
+  const s = status.toLowerCase();
+  if (s.includes("pagada") || s.includes("pagado")) return colors.success;
+  if (s.includes("pendiente")) return colors.warning;
+  if (s.includes("anulada") || s.includes("cancelada")) return colors.danger;
+  if (s.includes("parcial")) return colors.accent;
+  if (s.includes("adelantado") || s.includes("adelantada")) return colors.info;
+  return colors.primary;
 }
 
 function HistorialTab({ rows, colors }: { rows: HistorialEntry[]; colors: any }) {
@@ -444,6 +517,16 @@ const styles = StyleSheet.create({
   activeText: {
     fontSize: 10,
     fontWeight: "800",
+    textTransform: "uppercase",
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: "900",
     textTransform: "uppercase",
   },
 });

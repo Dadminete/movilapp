@@ -13,6 +13,7 @@ import { ClientesScreen } from "@/screens/ClientesScreen";
 import { FacturasScreen } from "@/screens/FacturasScreen";
 import { ProfileScreen } from "@/screens/ProfileScreen";
 import { getDashboardData, DashboardStats } from "@/services/dashboard";
+import { formatCurrency } from "@/utils/format";
 
 type TabKey = "dashboard" | "clientes" | "facturas" | "perfil";
 
@@ -92,7 +93,7 @@ export function HomeScreen() {
                     <View>
                       <Text style={[styles.cardLabel, { color: theme === "dark" ? colors.textMuted : "rgba(255,255,255,0.8)" }]}>Efectivo Total</Text>
                       <Text style={[styles.cardValue, { color: theme === "dark" ? colors.text : "#FFF" }]}>
-                        RD$ {Number(stats?.finance.saldoTotalEfectivo || 0).toLocaleString()}
+                        {formatCurrency(stats?.finance.saldoTotalEfectivo)}
                       </Text>
                     </View>
                     <View style={[styles.statusBadge, { backgroundColor: theme === "dark" ? "rgba(16, 185, 129, 0.15)" : "rgba(255,255,255,0.2)" }]}>
@@ -112,14 +113,14 @@ export function HomeScreen() {
                   <ModuleCard 
                     title="Caja Principal" 
                     icon={<Landmark color={colors.primary} size={22} />} 
-                    count={`RD$ ${Number(stats?.finance.cajaPrincipal || 0).toLocaleString()}`}
+                    count={formatCurrency(stats?.finance.cajaPrincipal)}
                     onPress={() => {}}
                     theme={theme}
                   />
                   <ModuleCard 
                     title="Caja Papelería" 
                     icon={<CreditCard color={colors.secondary} size={22} />} 
-                    count={`RD$ ${Number(stats?.finance.cajaPapeleria || 0).toLocaleString()}`}
+                    count={formatCurrency(stats?.finance.cajaPapeleria)}
                     onPress={() => {}}
                     theme={theme}
                   />
@@ -191,7 +192,7 @@ export function HomeScreen() {
                         <Text style={[styles.activityDate, { color: colors.textDim }]}>{new Date(move.fecha).toLocaleDateString()}</Text>
                       </View>
                       <Text style={[styles.activityAmount, { color: move.tipo === "INGRESO" ? colors.success : colors.danger }]}>
-                        {move.tipo === "INGRESO" ? "+" : "-"}${Number(move.monto).toLocaleString()}
+                        {move.tipo === "INGRESO" ? "+" : "-"}{formatCurrency(move.monto)}
                       </Text>
                     </View>
                   ))}
