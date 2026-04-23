@@ -12,7 +12,7 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Lock, User } from "lucide-react-native";
+import { Eye, EyeOff, Lock, User } from "lucide-react-native";
 
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -28,6 +28,8 @@ export function LoginScreen() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState<"username" | "password" | null>(null);
 
   const canSubmit = username.trim().length > 0 && password.length > 0;
 
@@ -70,8 +72,11 @@ export function LoginScreen() {
 
             <View style={styles.form}>
               <View style={styles.inputContainer}>
-                <View style={[styles.inputWrapper, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <User size={20} color={colors.textDim} style={styles.inputIcon} />
+                <View style={[styles.inputWrapper, { 
+                  backgroundColor: colors.surface, 
+                  borderColor: focusedField === "username" ? colors.primary : colors.border 
+                }]}>
+                  <User size={20} color={focusedField === "username" ? colors.primary : colors.textDim} style={styles.inputIcon} />
                   <TextInput
                     placeholder="Usuario"
                     placeholderTextColor={colors.textDim}
@@ -79,21 +84,34 @@ export function LoginScreen() {
                     autoCapitalize="none"
                     value={username}
                     onChangeText={setUsername}
+                    onFocus={() => setFocusedField("username")}
+                    onBlur={() => setFocusedField(null)}
                   />
                 </View>
               </View>
 
               <View style={styles.inputContainer}>
-                <View style={[styles.inputWrapper, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <Lock size={20} color={colors.textDim} style={styles.inputIcon} />
+                <View style={[styles.inputWrapper, { 
+                  backgroundColor: colors.surface, 
+                  borderColor: focusedField === "password" ? colors.primary : colors.border 
+                }]}>
+                  <Lock size={20} color={focusedField === "password" ? colors.primary : colors.textDim} style={styles.inputIcon} />
                   <TextInput
                     placeholder="Contraseña"
                     placeholderTextColor={colors.textDim}
                     style={[styles.input, { color: colors.text }]}
-                    secureTextEntry
+                    secureTextEntry={!showPassword}
                     value={password}
                     onChangeText={setPassword}
+                    onFocus={() => setFocusedField("password")}
+                    onBlur={() => setFocusedField(null)}
                   />
+                  <Pressable onPress={() => setShowPassword((v) => !v)} style={styles.eyeBtn} hitSlop={8}>
+                    {showPassword 
+                      ? <EyeOff size={20} color={colors.textDim} />
+                      : <Eye size={20} color={colors.textDim} />
+                    }
+                  </Pressable>
                 </View>
               </View>
 
@@ -196,6 +214,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     height: "100%",
+    outlineWidth: 0,
+  },
+  eyeBtn: {
+    padding: 4,
+    marginLeft: 4,
   },
   errorContainer: {
     backgroundColor: "rgba(244, 63, 94, 0.1)",

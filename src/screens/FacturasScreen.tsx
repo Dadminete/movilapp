@@ -80,14 +80,14 @@ export function FacturasScreen() {
         {/* Stats Cards Row 1 */}
         <View style={styles.cardGrid}>
           <StatCard
-            label="Monto Total (Mes)"
-            value={`$${Number(stats?.montoFacturadoMes || 0).toLocaleString()}`}
+            label="Facturado (Mes)"
+            value={`$${Number(stats?.facturadoMesActual || 0).toLocaleString()}`}
             icon={<DollarSign size={16} color={colors.primary} />}
             colors={colors}
           />
           <StatCard
-            label="Pagado (Mes)"
-            value={`$${Number(stats?.montoPagadoMes || 0).toLocaleString()}`}
+            label="Cobrado (Mes)"
+            value={`$${Number(stats?.cobradoMesActual || 0).toLocaleString()}`}
             icon={<CheckCircle size={16} color={colors.success} />}
             colors={colors}
           />
@@ -96,14 +96,14 @@ export function FacturasScreen() {
         {/* Stats Cards Row 2 */}
         <View style={styles.cardGrid}>
           <StatCard
-            label="Pendiente (Mes)"
-            value={`$${Number(stats?.montoPendienteMes || 0).toLocaleString()}`}
+            label="Pendiente Global"
+            value={`$${Number(stats?.montoPendienteGlobal || 0).toLocaleString()}`}
             icon={<Clock size={16} color={colors.warning} />}
             colors={colors}
           />
           <StatCard
             label="Adelantado"
-            value={`$${Number(stats?.montoAdelantadoMes || 0).toLocaleString()}`}
+            value={`$${Number(stats?.montoAdelantadoPendiente || 0).toLocaleString()}`}
             icon={<TrendingUp size={16} color={colors.secondary} />}
             colors={colors}
           />
@@ -113,7 +113,7 @@ export function FacturasScreen() {
         <View style={styles.cardGrid}>
           <StatCard
             label="Parciales"
-            value={`${stats?.facturasParcialesMes || 0}`}
+            value={`${stats?.facturasParciales || 0}`}
             icon={<AlertCircle size={16} color={colors.accent} />}
             colors={colors}
           />
@@ -136,7 +136,7 @@ export function FacturasScreen() {
                <View style={[styles.barBase, { backgroundColor: colors.surfaceAlt }]}>
                  <View style={[styles.barFill, { 
                    backgroundColor: colors.success, 
-                   height: `${(Number(stats?.montoPagadoMes) / (Number(stats?.montoFacturadoMes) || 1)) * 100}%` 
+                   height: `${(Number(stats?.cobradoMesActual) / (Number(stats?.facturadoMesActual) || 1)) * 100}%` 
                  }]} />
                </View>
                <Text style={[styles.barLabel, { color: colors.textDim }]}>Cobrado</Text>
@@ -146,7 +146,7 @@ export function FacturasScreen() {
                <View style={[styles.barBase, { backgroundColor: colors.surfaceAlt }]}>
                  <View style={[styles.barFill, { 
                    backgroundColor: colors.warning, 
-                   height: `${(Number(stats?.montoPendienteMes) / (Number(stats?.montoFacturadoMes) || 1)) * 100}%` 
+                   height: `${(Number(stats?.montoPendienteGlobal) / (Number(stats?.facturadoMesActual) || 1)) * 100}%` 
                  }]} />
                </View>
                <Text style={[styles.barLabel, { color: colors.textDim }]}>Pendiente</Text>

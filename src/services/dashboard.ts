@@ -29,7 +29,7 @@ export interface DashboardStats {
 }
 
 export async function getDashboardData(): Promise<DashboardStats> {
-  const [clientsRes, movementsRes, cajaStatsRes, cajaPrincipalRes, papeleriaStatsRes] = await Promise.all([
+  const [clientsRes, movementsRes, cajaStatsRes, cajaPrincipalRes, papeleriaStatsRes] = await Promise.allSettled([
     http.get("/api/clientes", { params: { limit: 1 } }),
     http.get("/api/recent-movements"),
     http.get("/api/caja-stats"),
@@ -37,14 +37,17 @@ export async function getDashboardData(): Promise<DashboardStats> {
     http.get("/api/papeleria-stats")
   ]);
 
+  const val = <T>(r: PromiseSettledResult<{ data: T }>) =>
+    r.status === "fulfilled" ? r.value.data : null;
+
   return {
-    totalClientes: (clientsRes.data as any).meta?.pagination?.total || 0,
-    recentMovements: (movementsRes.data as any).data || [],
+    totalClientes: (val(clientsRes) as any)?.meta?.pagination?.total || 0,
+    recentMovements: (val(movementsRes) as any)?.data || [],
     finance: {
-      saldoTotalEfectivo: (cajaStatsRes.data as any).data?.saldoTotal || 0,
-      cajaPrincipal: (cajaPrincipalRes.data as any).data?.balanceActual || 0,
-      cajaPapeleria: (papeleriaStatsRes.data as any).data?.balanceActual || 0,
-      history: (cajaStatsRes.data as any).data?.ultimosMeses || []
+      saldoTotalEfectivo: (val(cajaStatsRes) as any)?.data?.saldoTotal || 0,
+      cajaPrincipal: (val(cajaPrincipalRes) as any)?.data?.balanceActual || 0,
+      cajaPapeleria: (val(papeleriaStatsRes) as any)?.data?.balanceActual || 0,
+      history: (val(cajaStatsRes) as any)?.data?.ultimosMeses || []
     }
   };
 }
