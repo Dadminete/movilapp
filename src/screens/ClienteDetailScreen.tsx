@@ -11,12 +11,16 @@ import {
   View,
   Platform,
   Image,
+  Modal,
+  TextInput,
 } from "react-native";
-import { ChevronLeft, Info, CreditCard, History, User, MapPin, Phone, Mail, Hash, LayoutDashboard } from "lucide-react-native";
+import { ChevronLeft, Info, CreditCard, History, User, MapPin, Phone, Mail, Hash, LayoutDashboard, X, AlertCircle } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { getClienteById } from "@/services/clientes";
 import { getApiErrorMessage } from "@/services/http";
+import { pagarFactura } from "@/services/facturas";
+import { getLookupData, LookupData } from "@/services/dashboard";
 import { ClienteDetail } from "@/types/api";
 import { useTheme } from "@/context/ThemeContext";
 import { darkTheme, lightTheme, appRadius, appShadows, appSpacing } from "@/theme";
@@ -60,24 +64,70 @@ export function ClienteDetailScreen({ clienteId, onBack }: Props) {
   const [suscripciones, setSuscripciones] = useState<SuscripcionEntry[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getClienteById(clienteId);
-        setCliente(data.client);
-        setHistorial((data.history as HistorialEntry[]) || []);
-        setSuscripciones((data.subscriptions as SuscripcionEntry[]) || []);
-        setInvoices(data.invoices || []);
-      } catch (err: unknown) {
-        setError(getApiErrorMessage(err));
-      } finally {
-        setLoading(false);
-      }
+  // Payment State
+  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"efectivo" | "transferencia">("efectivo");
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [lookupData, setLookupData] = useState<LookupData | null>(null);
+  const [selectedCajaId, setSelectedCajaId] = useState<string>("");
+  const [selectedBankAccountId, setSelectedBankAccountId] = useState<string>("");
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [data, lookup] = await Promise.all([
+        getClienteById(clienteId),
+        getLookupData()
+      ]);
+      setCliente(data.client);
+      setHistorial((data.history as HistorialEntry[]) || []);
+      setSuscripciones((data.subscriptions as SuscripcionEntry[]) || []);
+      setInvoices(data.invoices || []);
+      
+      setLookupData(lookup);
+      if (lookup.cajas.length > 0) setSelectedCajaId(lookup.cajas[0].id);
+      if (lookup.cuentasBancarias.length > 0) setSelectedBankAccountId(lookup.cuentasBancarias[0].id);
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setLoading(false);
     }
-    load();
+  };
+
+  useEffect(() => {
+    loadData();
   }, [clienteId]);
+
+  const handlePayment = async () => {
+    if (!selectedInvoice || !paymentAmount) return;
+    
+    try {
+      setPaymentLoading(true);
+      setPaymentError(null);
+      
+      await pagarFactura({
+        facturaId: selectedInvoice.id,
+        clienteId: clienteId,
+        monto: parseFloat(paymentAmount),
+        metodoPago: paymentMethod,
+        cajaId: paymentMethod === "efectivo" ? selectedCajaId : undefined,
+        cuentaBancariaId: paymentMethod === "transferencia" ? selectedBankAccountId : undefined,
+        observaciones: "Pago desde App Móvil (Perfil)"
+      });
+      
+      setSelectedInvoice(null);
+      setPaymentAmount("");
+      await loadData();
+      alert("Pago registrado exitosamente");
+    } catch (err: any) {
+      setPaymentError(err.message || "Error al procesar el pago");
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
 
   return (
     <View style={[styles.baseContainer, { backgroundColor: colors.bg }]}>
@@ -170,11 +220,141 @@ export function ClienteDetailScreen({ clienteId, onBack }: Props) {
             <View style={styles.tabContent}>
               {tab === "info" && cliente && <InfoTab cliente={cliente} colors={colors} />}
               {tab === "suscripciones" && <SuscripcionesTab rows={suscripciones} colors={colors} />}
-              {tab === "facturas" && <FacturasTab rows={invoices} colors={colors} />}
+              {tab === "facturas" && (
+                <FacturasTab 
+                  rows={invoices} 
+                  colors={colors} 
+                  onPayInvoice={(invoice) => {
+                    setSelectedInvoice(invoice);
+                    setPaymentAmount(String(invoice.montoPendiente || invoice.total));
+                  }} 
+                />
+              )}
               {tab === "historial" && <HistorialTab rows={historial} colors={colors} />}
             </View>
           </>
         )}
+
+        {/* Payment Modal */}
+        <Modal
+          visible={!!selectedInvoice}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setSelectedInvoice(null)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Registrar Pago</Text>
+                <Pressable onPress={() => setSelectedInvoice(null)}>
+                  <X size={24} color={colors.textDim} />
+                </Pressable>
+              </View>
+              
+              {selectedInvoice && (
+                <View style={styles.modalBody}>
+                  <Text style={[styles.modalInfo, { color: colors.textMuted }]}>
+                    Factura: {selectedInvoice.numeroFactura}
+                  </Text>
+                  <Text style={[styles.modalInfo, { color: colors.textMuted, marginBottom: 20 }]}>
+                    Pendiente: {formatCurrency(selectedInvoice.montoPendiente || selectedInvoice.total)}
+                  </Text>
+                  
+                  <Text style={[styles.inputLabel, { color: colors.text }]}>Monto a Pagar</Text>
+                  <TextInput
+                    style={[styles.modalInput, { color: colors.text, borderColor: colors.border }]}
+                    keyboardType="numeric"
+                    value={paymentAmount}
+                    onChangeText={setPaymentAmount}
+                    placeholder="0.00"
+                    placeholderTextColor={colors.textDim}
+                  />
+                  
+                  <Text style={[styles.inputLabel, { color: colors.text }]}>Método de Pago</Text>
+                  <View style={styles.methodRow}>
+                    <Pressable 
+                      onPress={() => setPaymentMethod("efectivo")}
+                      style={[styles.methodBtn, { borderColor: colors.border }, paymentMethod === "efectivo" && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                    >
+                      <Text style={[styles.methodText, { color: paymentMethod === "efectivo" ? "#FFF" : colors.textMuted }]}>Efectivo</Text>
+                    </Pressable>
+                    <Pressable 
+                      onPress={() => setPaymentMethod("transferencia")}
+                      style={[styles.methodBtn, { borderColor: colors.border }, paymentMethod === "transferencia" && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                    >
+                      <Text style={[styles.methodText, { color: paymentMethod === "transferencia" ? "#FFF" : colors.textMuted }]}>Banco</Text>
+                    </Pressable>
+                  </View>
+
+                  {paymentMethod === "efectivo" && lookupData?.cajas && (
+                    <>
+                      <Text style={[styles.inputLabel, { color: colors.text }]}>Seleccionar Caja</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.accountSelectors}>
+                        {lookupData.cajas.map((caja) => (
+                          <Pressable 
+                            key={caja.id} 
+                            onPress={() => setSelectedCajaId(caja.id)}
+                            style={[
+                              styles.accountChip, 
+                              { borderColor: colors.border },
+                              selectedCajaId === caja.id && { backgroundColor: colors.primary, borderColor: colors.primary }
+                            ]}
+                          >
+                            <Text style={[styles.accountChipText, { color: selectedCajaId === caja.id ? "#FFF" : colors.textMuted }]}>
+                              {caja.nombre}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </>
+                  )}
+
+                  {paymentMethod === "transferencia" && lookupData?.cuentasBancarias && (
+                    <>
+                      <Text style={[styles.inputLabel, { color: colors.text }]}>Seleccionar Cuenta Bancaria</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.accountSelectors}>
+                        {lookupData.cuentasBancarias.map((cuenta) => (
+                          <Pressable 
+                            key={cuenta.id} 
+                            onPress={() => setSelectedBankAccountId(cuenta.id)}
+                            style={[
+                              styles.accountChip, 
+                              { borderColor: colors.border },
+                              selectedBankAccountId === cuenta.id && { backgroundColor: colors.primary, borderColor: colors.primary }
+                            ]}
+                          >
+                            <Text style={[styles.accountChipText, { color: selectedBankAccountId === cuenta.id ? "#FFF" : colors.textMuted }]}>
+                              {cuenta.bankNombre} - {cuenta.numeroCuenta.slice(-4)}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </>
+                  )}
+                  
+                  {paymentError && (
+                    <View style={styles.errorBox}>
+                      <AlertCircle size={14} color={colors.danger} />
+                      <Text style={[styles.errorText, { color: colors.danger }]}>{paymentError}</Text>
+                    </View>
+                  )}
+                  
+                  <Pressable 
+                    onPress={handlePayment} 
+                    disabled={paymentLoading}
+                    style={[styles.submitBtn, { backgroundColor: colors.success }, paymentLoading && { opacity: 0.7 }]}
+                  >
+                    {paymentLoading ? (
+                      <ActivityIndicator color="#FFF" size="small" />
+                    ) : (
+                      <Text style={styles.submitBtnText}>Confirmar Pago</Text>
+                    )}
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </View>
   );
@@ -271,7 +451,7 @@ function SuscripcionesTab({ rows, colors }: { rows: SuscripcionEntry[]; colors: 
   );
 }
 
-function FacturasTab({ rows, colors }: { rows: any[]; colors: any }) {
+function FacturasTab({ rows, colors, onPayInvoice }: { rows: any[]; colors: any; onPayInvoice?: (item: any) => void }) {
   if (rows.length === 0) {
     return (
       <View style={styles.centered}>
@@ -314,6 +494,14 @@ function FacturasTab({ rows, colors }: { rows: any[]; colors: any }) {
                 <Text style={[styles.cardPrice, { color: colors.text, fontSize: 14 }]}>
                   {formatCurrency(item.total)}
                 </Text>
+                {!isPaid && !isVoid && onPayInvoice && (
+                  <Pressable 
+                    onPress={() => onPayInvoice(item)}
+                    style={[styles.payBtn, { backgroundColor: colors.success }]}
+                  >
+                    <Text style={styles.payBtnText}>Pagar</Text>
+                  </Pressable>
+                )}
               </View>
             </View>
           </View>
@@ -528,5 +716,110 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "900",
     textTransform: "uppercase",
+  },
+  payBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  payBtnText: {
+    color: "#FFF",
+    fontSize: 10,
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    padding: appSpacing.xl,
+  },
+  modalContent: {
+    borderRadius: appRadius.xl,
+    padding: appSpacing.lg,
+    ...appShadows.soft,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: appSpacing.lg,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "900",
+  },
+  modalBody: {
+    gap: 8,
+  },
+  modalInfo: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    marginTop: 10,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderRadius: appRadius.md,
+    padding: appSpacing.md,
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  methodRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 4,
+  },
+  methodBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: appRadius.md,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  methodText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  accountSelectors: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 6,
+    paddingBottom: 4,
+  },
+  accountChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  accountChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  submitBtn: {
+    marginTop: 20,
+    paddingVertical: 16,
+    borderRadius: appRadius.md,
+    alignItems: "center",
+  },
+  submitBtnText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 10,
+    backgroundColor: "rgba(244, 63, 94, 0.1)",
+    padding: 10,
+    borderRadius: 8,
   },
 });
