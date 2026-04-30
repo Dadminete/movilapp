@@ -1,12 +1,13 @@
 {
   "expo": {
-    "name": "Sistema Gestion Mobile",
-    "slug": "sistema-gestion-mobile",
+    "name": "EteMovil",
+    "slug": "etemovil",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "splash": {
-      "backgroundColor": "#0B132B"
+      "image": "./assets/logo-ete.jpg",
+      "backgroundColor": "#000000"
     },
     "assetBundlePatterns": [
       "**/*"

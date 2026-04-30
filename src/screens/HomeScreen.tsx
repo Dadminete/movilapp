@@ -67,7 +67,7 @@ export function HomeScreen() {
                   </View>
                   <View>
                     <Text style={[styles.greeting, { color: colors.text }]}>{greeting}</Text>
-                    <Text style={[styles.subtitle, { color: colors.textMuted }]}>Dashboard Financiero</Text>
+                    <Text style={[styles.subtitle, { color: colors.textMuted }]}>EteMovil</Text>
                   </View>
                 </View>
                 <View style={{ flexDirection: "row", gap: 10 }}>

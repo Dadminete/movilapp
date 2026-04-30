@@ -89,7 +89,7 @@ export function ProfileScreen() {
               <Text style={styles.logoutText}>Cerrar Sesión</Text>
             </Pressable>
             
-            <Text style={[styles.version, { color: colors.textDim }]}>v3.0.1 Quantum Edition</Text>
+            <Text style={[styles.version, { color: colors.textDim }]}>v3.0.1 EteMovil Edition</Text>
           </View>
         </ScrollView>
       </SafeAreaView>

@@ -10,6 +10,7 @@ import {
   Text,
   TextInput,
   View,
+  Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Eye, EyeOff, Lock, User } from "lucide-react-native";
@@ -58,16 +59,16 @@ export function LoginScreen() {
         >
           <View style={styles.content}>
             <View style={styles.header}>
-              <LinearGradient
-                colors={[colors.primary, colors.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.logoBadge}
-              >
-                <Lock color="#FFF" size={32} />
-              </LinearGradient>
-              <Text style={[styles.title, { color: colors.text }]}>SISTEMA</Text>
-              <Text style={[styles.subtitle, { color: colors.textMuted }]}>Gestión Inteligente v3.0</Text>
+              {/* Logo ETE */}
+            <View style={styles.logoContainer}>
+              <Image
+                source={require("../../assets/logo-ete.jpg")}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={[styles.appName, { color: "#C9A84C" }]}>ETEMOVIL</Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>Empresa Tecnológica del Este</Text>
             </View>
 
             <View style={styles.form}>
@@ -174,19 +175,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: appSpacing.xxl,
   },
-  logoBadge: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: appSpacing.lg,
-    ...appShadows.glow,
+  logoContainer: {
+    width: 160,
+    height: 160,
+    borderRadius: 20,
+    overflow: "hidden",
+    marginBottom: appSpacing.md,
+    backgroundColor: "#000",
   },
-  title: {
-    fontSize: 42,
+  logoImage: {
+    width: "100%",
+    height: "100%",
+  },
+  appName: {
+    fontSize: 32,
     fontWeight: "900",
-    letterSpacing: 2,
+    letterSpacing: 4,
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
   },
   subtitle: {
     fontSize: 16,
